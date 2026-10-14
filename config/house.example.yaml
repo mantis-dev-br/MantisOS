@@ -1,0 +1,26 @@
+system:
+  name: mantis-central
+  timezone: America/Sao_Paulo
+  offline_first: true
+
+network:
+  ethernet_enabled: true
+  wifi_client_enabled: true
+  setup_access_point_enabled: true
+  setup_access_point_timeout_minutes: 15
+
+services:
+  wizard_enabled: true
+  local_api_enabled: true
+  automation_enabled: false
+  cameras_enabled: false
+  facial_recognition_enabled: false
+
+storage:
+  video_path: /srv/mantisos/recordings
+  retention_days: 7
+
+security:
+  alarm_integration_mode: read_only
+  allow_remote_access: false
+  log_credentials: false
