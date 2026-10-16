@@ -1,0 +1,52 @@
+#!/bin/bash
+
+set -u
+
+SOURCE="${BASH_SOURCE[0]}"
+
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+    LINK="$(readlink "$SOURCE")"
+
+    if [[ "$LINK" = /* ]]; then
+        SOURCE="$LINK"
+    else
+        SOURCE="$DIR/$LINK"
+    fi
+done
+
+ROOT="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+
+source "$ROOT/lib/common.sh"
+
+usage() {
+    cat <<'HELP'
+MantisOS Control
+
+Uso:
+  mantisctl status
+  mantisctl network
+  mantisctl services
+  mantisctl help
+HELP
+}
+
+case "${1:-help}" in
+    status)
+        show_status
+        ;;
+    network)
+        show_network
+        ;;
+    services)
+        show_services
+        ;;
+    help|-h|--help)
+        usage
+        ;;
+    *)
+        echo "Comando desconhecido: $1" >&2
+        usage
+        exit 2
+        ;;
+esac
