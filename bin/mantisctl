@@ -28,6 +28,8 @@ Uso:
   mantisctl network
   mantisctl services
   mantisctl help
+  mantisctl wifi status
+  mantisctl wifi scan
 HELP
 }
 
@@ -40,6 +42,10 @@ case "${1:-help}" in
         ;;
     services)
         show_services
+        ;;
+    wifi)
+        shift
+        "$ROOT/services/network/wifi-wizard.sh" "${1:-help}"
         ;;
     help|-h|--help)
         usage
