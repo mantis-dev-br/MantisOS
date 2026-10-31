@@ -24,6 +24,7 @@ O que já funciona no hardware:
 - Diagnóstico de sistema, memória, armazenamento e rede.
 - Assistente Wi-Fi em terminal: estado, varredura e cadastro de perfis WPA/WPA2-PSK sem ativá-los e sem derrubar a conexão atual.
 - Autorização mínima via Polkit para varredura Wi-Fi sem `sudo`.
+- Link de gerência cabeado com IP fixo, independente do Wi-Fi.
 
 Ainda não implementado: assistente web, ponto de acesso de configuração, câmeras, alarme, iluminação, nós ESP32 e reconhecimento facial.
 
@@ -54,7 +55,9 @@ ESP32 (nós de borda)                         ⏳
 ```
 bin/            CLI mantisctl
 config/         Exemplo de configuração da central
-deploy/         Instaladores e regras de sistema (Polkit)
+deploy/         Instaladores e regras de sistema
+  network/      Link de gerência cabeado
+  polkit/       Regras de autorização
 docs/           Documentação do projeto
 lib/            Funções compartilhadas em Shell
 scripts/        Diagnóstico e manutenção
@@ -120,9 +123,18 @@ ln -sf "$PWD/bin/mantisctl" ~/.local/bin/mantisctl
 
 # Permite varredura Wi-Fi sem sudo (apenas essa ação)
 sudo ./deploy/install-polkit-rules.sh
+
+# Link de gerência cabeado (IP fixo, sem rota padrão)
+sudo ./deploy/network/install-management-link.sh
 ```
 
 Se `~/.local/bin` não estiver no `PATH`, acrescente `export PATH="$HOME/.local/bin:$PATH"` ao `~/.bashrc`.
+
+### Link de gerência
+
+A porta Ethernet da central é reservada ao acesso administrativo e de recuperação: IP fixo `10.77.0.1/24`, sem gateway e sem DNS, nunca usada como rota padrão. Assim o acesso continua disponível quando o Wi-Fi está fora do ar, em modo de configuração ou mal configurado.
+
+Ligue um computador direto na porta Ethernet e configure nele `10.77.0.2/24`, também sem gateway. Interface e endereço podem ser alterados com `MANTIS_MGMT_IFACE` e `MANTIS_MGMT_ADDRESS`.
 
 ---
 
