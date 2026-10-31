@@ -2,7 +2,13 @@
 set -u
 
 echo "=== MODELO ==="
-cat /proc/device-tree/model 2>/dev/null || true
+if [ -r /proc/device-tree/model ]; then
+    # O arquivo termina em NUL; removê-lo evita aviso e lixo na saída.
+    tr -d '\000' < /proc/device-tree/model
+    echo
+else
+    echo "desconhecido"
+fi
 echo
 
 echo "=== SISTEMA ==="
@@ -27,8 +33,10 @@ ip -br addr
 echo
 
 echo "=== WIFI ==="
-if command -v iw >/dev/null 2>&1; then
-    iw dev
+# iw fica em /usr/sbin, fora do PATH de usuários comuns no Debian.
+IW="$(PATH="$PATH:/usr/sbin:/sbin" command -v iw 2>/dev/null || true)"
+if [ -n "$IW" ]; then
+    "$IW" dev
 else
     echo "Comando iw indisponivel."
 fi

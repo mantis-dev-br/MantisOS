@@ -1,16 +1,31 @@
 # MantisOS
 
-Camada de serviços e automação para Orange Pi 5, com suporte a dispositivos IoT analógicos e digitais via placas ESP32.
+Camada de serviços e automação para Orange Pi 5, que integra equipamentos analógicos e digitais por meio de nós ESP32 em rede local.
 
-> Funciona sem internet. Projetado para operar localmente com recuperação automática de falhas.
+> Projetado para funcionar sem internet, com recuperação automática de falhas.
 
 ---
 
 ## O que é
 
-MantisOS é um conjunto de serviços, scripts e configurações que transforma um Orange Pi 5 em uma central de controle local para equipamentos analógicos e digitais — câmeras IP, iluminação, alarme e reconhecimento facial — sem depender de nuvem para o funcionamento básico.
+MantisOS é um conjunto de serviços, scripts e configurações que transforma um Orange Pi 5 em uma central de controle local para câmeras IP, iluminação, alarme e reconhecimento facial, sem depender de nuvem para o funcionamento básico.
 
-A comunicação com dispositivos não digitais é feita via placas ESP32 conectadas à rede local, controladas pela central.
+Equipamentos sem interface digital nativa são lidos e acionados por placas ESP32 na rede local, coordenadas pela central.
+
+O projeto é escrito em Shell (Bash) e C, sobre o kernel Linux e o NetworkManager da distribuição. A lógica da central é própria, sem plataformas de automação prontas.
+
+---
+
+## Estado atual
+
+O que já funciona no hardware:
+
+- `mantisctl`: CLI administrativa da central.
+- Diagnóstico de sistema, memória, armazenamento e rede.
+- Assistente Wi-Fi em terminal: estado, varredura e cadastro de perfis WPA/WPA2-PSK sem ativá-los e sem derrubar a conexão atual.
+- Autorização mínima via Polkit para varredura Wi-Fi sem `sudo`.
+
+Ainda não implementado: assistente web, ponto de acesso de configuração, câmeras, alarme, iluminação, nós ESP32 e reconhecimento facial.
 
 ---
 
@@ -18,17 +33,18 @@ A comunicação com dispositivos não digitais é feita via placas ESP32 conecta
 
 ```
 Orange Pi 5 (MantisOS)
-├── Wizard de configuração web (setup inicial)
-├── Gerenciamento de rede (Ethernet + Wi-Fi)
-├── Integração de câmeras IP via RTSP
-├── Controle de iluminação
-├── Integração com alarme existente (sem substituí-lo)
-├── Reconhecimento facial local
-└── CLI: mantisctl
+├── CLI: mantisctl                          ✅
+├── Gerenciamento de rede (Ethernet + Wi-Fi) 🔄
+├── Assistente de configuração web           ⏳
+├── Integração de câmeras IP via RTSP        ⏳
+├── Controle de iluminação                   ⏳
+├── Integração com alarme existente          ⏳
+│   (somente leitura, sem substituí-lo)
+└── Reconhecimento facial local              ⏳
 
-ESP32 (dispositivos de borda)
-└── Monitoria e controle de equipamentos analógicos
-    via rede local
+ESP32 (nós de borda)                         ⏳
+└── Aquisição analógica e acionamento
+    de equipamentos não digitais
 ```
 
 ---
@@ -36,14 +52,14 @@ ESP32 (dispositivos de borda)
 ## Estrutura do repositório
 
 ```
-bin/            Scripts executáveis e utilitários
-config/         Arquivos de configuração dos serviços
-deploy/         Scripts de instalação e provisionamento
+bin/            CLI mantisctl
+config/         Exemplo de configuração da central
+deploy/         Instaladores e regras de sistema (Polkit)
 docs/           Documentação do projeto
-lib/            Bibliotecas e módulos compartilhados
-scripts/        Scripts de manutenção e automação
+lib/            Funções compartilhadas em Shell
+scripts/        Diagnóstico e manutenção
 services/
-  network/      Configuração e recuperação de rede
+  network/      Assistente Wi-Fi
 ```
 
 ---
@@ -52,9 +68,9 @@ services/
 
 | Fase | Descrição | Status |
 |------|-----------|--------|
-| F0 | Inventário e requisitos | ✅ Concluído |
+| F0 | Inventário e requisitos | 🔄 Central inventariada; periféricos pendentes |
 | F1 | Linux base e acesso administrativo | 🔄 Em andamento |
-| F2 | Wizard Wi-Fi e recuperação de rede | ⏳ Pendente |
+| F2 | Assistente Wi-Fi e recuperação de rede | 🔄 Assistente em terminal funcional |
 | F3 | Primeira câmera e gravação local | ⏳ Pendente |
 | F4 | Iluminação e alarme | ⏳ Pendente |
 | F5 | Reconhecimento facial | ⏳ Pendente |
@@ -65,7 +81,7 @@ services/
 ## Princípios
 
 1. A central não substitui o funcionamento autônomo do alarme original.
-2. Senhas e credenciais não entram no Git.
+2. Senhas e credenciais não entram no Git nem nos argumentos de processos.
 3. A rede de configuração é isolada da rede residencial.
 4. Serviços essenciais iniciam automaticamente.
 5. Falhas de internet não impedem automações locais.
@@ -77,49 +93,63 @@ services/
 
 | Componente | Especificação |
 |------------|---------------|
-| Central | Orange Pi 5 — 16 GB RAM |
-| Dispositivos de borda | ESP32 (múltiplas unidades) |
-| Câmeras | IP com suporte a RTSP |
-| Conectividade | Ethernet + Wi-Fi |
+| Central | Orange Pi 5 (RK3588S), 16 GB RAM, NVMe 256 GB |
+| Wi-Fi | Adaptador USB (o Orange Pi 5 não tem Wi-Fi onboard) |
+| Nós de borda | ESP32 |
+| Câmeras | IP com RTSP |
 
 ---
 
 ## Requisitos
 
-- Orange Pi 5 com Debian/Ubuntu ARM
-- Python 3.10+
-- Acesso à rede local
+- Orange Pi 5 com Debian 12 (testado na imagem Orange Pi 1.1.8, kernel 6.1.43-rockchip-rk3588)
+- Bash, NetworkManager e Polkit
+- Usuário `orangepi` com acesso a `sudo` (a regra Polkit atual é escrita para esse usuário)
 
 ---
 
 ## Instalação
 
 ```bash
-# Clone o repositório no Orange Pi
-git clone https://github.com/mantis-dev-br/MantisOS.git
-cd MantisOS
+git clone https://github.com/mantis-dev-br/MantisOS.git ~/Projetos/MantisOS
+cd ~/Projetos/MantisOS
 
-# Provisionamento inicial
-sudo ./deploy/setup.sh
+# Disponibiliza o mantisctl no PATH do usuário
+mkdir -p ~/.local/bin
+ln -sf "$PWD/bin/mantisctl" ~/.local/bin/mantisctl
+
+# Permite varredura Wi-Fi sem sudo (apenas essa ação)
+sudo ./deploy/install-polkit-rules.sh
 ```
 
-> ⚠️ Nenhuma credencial deve ser inserida nos arquivos de configuração commitados. Use variáveis de ambiente ou arquivos `.env` locais (já no `.gitignore`).
+Se `~/.local/bin` não estiver no `PATH`, acrescente `export PATH="$HOME/.local/bin:$PATH"` ao `~/.bashrc`.
 
 ---
 
 ## CLI
 
 ```bash
-mantisctl status        # Estado geral dos serviços
-mantisctl restart <srv> # Reinicia um serviço específico
-mantisctl logs <srv>    # Exibe logs do serviço
+mantisctl status          # Modelo, kernel, memória e armazenamento
+mantisctl network         # Interfaces, endereços, rotas e NetworkManager
+mantisctl services        # Serviços em execução
+mantisctl wifi status     # Estado das interfaces e rota padrão
+mantisctl wifi scan       # Varredura de redes Wi-Fi
+mantisctl wifi configure  # Cadastra um perfil WPA/WPA2-PSK sem ativá-lo
+```
+
+O `wifi configure` grava o perfil diretamente no diretório de conexões do NetworkManager, com permissão `0600`, e pede a senha sem exibi-la. A senha nunca é passada como argumento de comando.
+
+Para diagnóstico completo da placa:
+
+```bash
+./scripts/diagnose.sh
 ```
 
 ---
 
 ## Licença
 
-Projeto pessoal — uso e distribuição sob consulta ao autor.
+Todos os direitos reservados. O código está publicado para consulta; uso, cópia e distribuição dependem de autorização do autor.
 
 ---
 
