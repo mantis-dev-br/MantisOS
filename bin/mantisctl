@@ -30,6 +30,7 @@ Uso:
   mantisctl help
   mantisctl wifi status
   mantisctl wifi scan
+  mantisctl wifi configure
 HELP
 }
 
